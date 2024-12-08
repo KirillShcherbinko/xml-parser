@@ -1,0 +1,10 @@
+define var 3
+{
+    Title : 1
+    Tite : 2
+    dict : {
+        c : 1
+        d : $[+ 3 $[- 8 908]]
+        v : list(9, 78)
+    }
+}
