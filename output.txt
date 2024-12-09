@@ -1,9 +1,13 @@
-define var 3
 {
-    Tite : 2
-    dict : {
-        c : 1
-        d : $[+ var $[- 8 908]]
-        v : list(9, 78)
+    Margin : define mg 10
+    Container : {
+        Block : 100
+        Block : 100
+        Block : 100
+        Gap : $[+ 10 mg]
+    }
+    Footer : {
+        Logo : 12.5
+        P : 23
     }
 }

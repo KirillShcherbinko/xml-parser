@@ -1,19 +1,16 @@
-<r name="var" value="3" />
-<Book id="1" language="en">
-    <Title>8</Title>
-    <Tite>2</Tite>
-    <dict>
-        <c id="56">1</c>
-        <d operation="+">
-            <l>var</l>
-            <l operation="-">
-                <j>8</j>
-                <s>908</s>
-            </l>
-        </d>
-        <v>
-            <q>9</q>
-            <q>78</q>
-        </v>
-    </dict>
-</Book>
+<UIConfig>
+    <Margin name="mg" value="10" />
+    <Container>
+        <Block>100</Block>
+        <Block>100</Block>
+        <Block>100</Block>
+        <Gap operation="+">
+            <value>10</value>
+            <value>mg</value>
+        </Gap>
+    </Container>
+    <Footer>
+        <Logo>12.5</Logo>
+        <P>23</P>
+    </Footer>
+</UIConfig>
