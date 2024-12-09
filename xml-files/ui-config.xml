@@ -1,0 +1,9 @@
+<UIConfig>
+    <Theme>Dark</Theme>
+    <Color>red</Color>
+    <FontSize>14</FontSize>
+    <Grid>
+        <Row>200</Row>
+        <Row>100</Row>
+    </Grid>
+</UIConfig>

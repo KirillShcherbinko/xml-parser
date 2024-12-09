@@ -1,0 +1,5 @@
+<TrafficLightConfig>
+    <RedLightDuration>90</RedLightDuration>
+    <YellowLightDuration>5</YellowLightDuration>
+    <GreenLightDuration>30</GreenLightDuration>
+</TrafficLightConfig>
