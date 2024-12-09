@@ -40,72 +40,87 @@ export function writeTxtFile(filePath, text) {
     }
 }
 
-export function parseValue(element, indent, constants) {
-    // Формируем массив из дочерних тегов
-    const childElements = Array.from(element.childNodes)
-        .filter(node => node.nodeType === 1);
-
-    const attributes = element.attributes;
-
-    // Игнорируем первую строку файла
-    if (attributes.version) {
-        return;
-    }
-
-    // Проверка на константу
-    if (childElements.length === 0 && element.nodeType === 1 && attributes.name && attributes.value) {
-        constants[attributes.name] = attributes.value;
-        return `define ${attributes.name} ${attributes.value}`;
-    }
-
-    // Работа с числами и операциями
-    if (childElements.length === 0 || attributes.operation && element.nodeType === 1) {
-        let text;
-        if (!attributes.operation) {
-            text = element.textContent.trim();
-        }
-        if (!isNaN(text)) {
-            return text;
-        } else if (constants[text]) {
-            element.textContent = constants[text];
-            return parseValue(element, indent, constants);
-        } else if (attributes.operation === "+" && childElements.length === 2) {
-            return `$[+ ${parseValue(childElements[0], indent, constants)} ${parseValue(childElements[1], indent, constants)}]`
-        } else if (attributes.operation === "-" && childElements.length === 2) {
-            return `$[- ${parseValue(childElements[0], indent, constants)} ${parseValue(childElements[1], indent, constants)}]`
-        } else if (attributes.operation === "abs" && childElements.length === 1) {
-            return `$[abs ${parseValue(childElements[0], indent, constants)}]`
-        } else if (attributes.operation === "min") {
-            return `$[min ${childElements.map(child => parseValue(child, indent, constants)).join(" ")}]`
-        }
-    }
-
-    // Проверка на массив
-    if (childElements.length > 0 && childElements.every(child => child.tagName === childElements[0].tagName)) {
-        return `list(${childElements.map(child => parseValue(child, indent, constants)).join(", ")})`;
-    }
-
-    // Проверка на словарь
-    if (childElements.length > 0 && !childElements.every(child => child.tagName === childElements[0].tagName)) {
-        const pairs = [];
-
-        // Добавление элементов в словарь
-        childElements.forEach(child => {
-            pairs.push(`    ${indent}${child.tagName} : ${parseValue(child, "    " + indent, constants)}`);
-        });
-
-        return `{\n${pairs.join('\n')}\n${indent}}`;
-    }
-
-    // Если не массив и не число, то тип не определён
-    throw new Error(`Не удалось определить тип элемента: ${element.tagName}`);
+export function isValidName(name) {
+    return /^[_a-zA-Z]+$/.test(name);
 }
 
 
-function parseXMLToObject(node) {
+export function parseValue(element, indent, constants) {
+    try {
+        // Формируем массив из дочерних тегов
+        const childElements = Array.from(element.childNodes)
+            .filter(node => node.nodeType === 1);
+
+        const attributes = element.attributes;
+
+        // Игнорируем первую строку файла
+        if (attributes.version) {
+            return;
+        }
+
+        // Проверка на константу
+        if (childElements.length === 0 && element.nodeType === 1 && attributes.name && attributes.value) {
+            constants[attributes.name] = attributes.value;
+            return `define ${attributes.name} ${attributes.value}`;
+        }
+
+        // Работа с числами и операциями
+        if (childElements.length === 0 || attributes.operation && element.nodeType === 1) {
+            let text;
+            if (!attributes.operation) {
+                text = element.textContent.toString().trim();
+            }
+            if (!isNaN(text)) {
+                return text;
+            } else if (constants[text]) {
+                return text;
+            } else if (attributes.operation === "+" && childElements.length === 2) {
+                return `$[+ ${parseValue(childElements[0], indent, constants)} ${parseValue(childElements[1], indent, constants)}]`
+            } else if (attributes.operation === "-" && childElements.length === 2) {
+                return `$[- ${parseValue(childElements[0], indent, constants)} ${parseValue(childElements[1], indent, constants)}]`
+            } else if (attributes.operation === "abs" && childElements.length === 1) {
+                return `$[abs ${parseValue(childElements[0], indent, constants)}]`
+            } else if (attributes.operation === "min") {
+                return `$[min ${childElements.map(child => parseValue(child, indent, constants)).join(" ")}]`
+            }
+        }
+
+        // Проверка на массив
+        if (childElements.length > 0 && childElements.every(child => child.tagName === childElements[0].tagName)) {
+            return `list(${childElements.map(child => parseValue(child, indent, constants)).join(", ")})`;
+        }
+
+        // Проверка на словарь
+        if (childElements.length > 0 && !childElements.every(child => child.tagName === childElements[0].tagName)) {
+            const pairs = [];
+
+            // Добавление элементов в словарь
+            childElements.forEach(child => {
+                pairs.push(`    ${indent}${child.tagName} : ${parseValue(child, "    " + indent, constants)}`);
+            });
+
+            return `{\n${pairs.join('\n')}\n${indent}}`;
+        }
+
+        // Если не массив и не число, то тип не определён
+        throw new Error(`Не удалось определить тип элемента: ${element.tagName}`);
+    } catch (err) {
+        if (!err.message.includes("Не удалось определить тип элемента")) {
+            throw new Error("Ошибки структуры");
+        }
+        throw new Error(err.message);
+    }
+}
+
+
+export function parseXmlToObject(node) {
     // Возвращаем содержимое для текстового узла
     if (node.nodeType === 3) {
         return node.nodeValue.trim();
+    }
+
+    if (!isValidName(node.tagName)) {
+        throw new Error(`Некорректное имя ${node.tagName}`);
     }
 
     // Родительский объект
@@ -121,6 +136,9 @@ function parseXMLToObject(node) {
         // Добавление атрибутов элемента
         if (node.hasAttributes()) {
             Array.from(node.attributes).forEach(attribute => {
+                if (attribute.name === "name" && !isValidName(attribute.value)) {
+                    throw new Error(`Некорректное имя ${attribute.value}`);
+                }
                 parentObject.attributes[attribute.name] = attribute.value;
             });
         }
@@ -130,7 +148,7 @@ function parseXMLToObject(node) {
             parentObject.textContent = node.firstChild.nodeValue.trim();
         } else {
             Array.from(node.childNodes).forEach(child => {
-                const childObject = parseXMLToObject(child);
+                const childObject = parseXmlToObject(child);
                 if (childObject !== "") {
                     parentObject.childNodes.push(childObject);
                 }
@@ -149,7 +167,7 @@ function main() {
         const parser = new DOMParser();
         const dom = parser.parseFromString(xmlString, "application/xml");
         const rootNodes = Array.from(dom.childNodes)
-            .map(rootNode => parseXMLToObject(rootNode))
+            .map(rootNode => parseXmlToObject(rootNode))
             .filter(element => element !== "");
         const constants = {};
         const text = rootNodes
